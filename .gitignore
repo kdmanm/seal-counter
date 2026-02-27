@@ -1,0 +1,5 @@
+# Training workspace (large files: venv, datasets, model weights)
+training/
+
+# OS files
+.DS_Store
