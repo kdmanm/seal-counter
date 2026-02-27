@@ -305,6 +305,14 @@
     if (!dom.detectResults) return;
     dom.detectResults.classList.remove('hidden');
     drawDetections();
+    // detectOverlay に描画済みなので captureCanvas を解放（iOS メモリ節約）
+    dom.captureCanvas.width = 1;
+    dom.captureCanvas.height = 1;
+    // blob URL 画像も解放（detectOverlay が表示を担うため不要）
+    if (dom.capturedImage.src && dom.capturedImage.src.startsWith('blob:')) {
+      URL.revokeObjectURL(dom.capturedImage.src);
+    }
+    dom.capturedImage.src = '';
     renderDetectionList();
     updateDetectStats(elapsed);
   }
@@ -379,7 +387,12 @@
     accepted.forEach(function(det) { addSeal(det.points, captureId, 'scan'); });
     state.pendingDetections = [];
     if (dom.detectResults) dom.detectResults.classList.add('hidden');
-    if (dom.detectOverlay) dom.detectOverlay.classList.add('hidden');
+    if (dom.detectOverlay) {
+      dom.detectOverlay.classList.add('hidden');
+      // キャンバスメモリ解放
+      dom.detectOverlay.width = 1;
+      dom.detectOverlay.height = 1;
+    }
   }
 
   // ====================================
