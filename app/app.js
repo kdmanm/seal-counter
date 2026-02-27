@@ -244,6 +244,7 @@
     var video = dom.cameraPreview;
     var ctx;
 
+    var MAX_DIM = 1280;
     if (video.videoWidth > 0 && !video.classList.contains('hidden')) {
       canvas.width = video.videoWidth;
       canvas.height = video.videoHeight;
@@ -252,10 +253,18 @@
     } else {
       var img = dom.capturedImage;
       if (img.src && !img.classList.contains('hidden')) {
-        canvas.width = img.naturalWidth;
-        canvas.height = img.naturalHeight;
+        // 大きな写真はリサイズ（iOS Safari メモリクラッシュ防止）
+        var w = img.naturalWidth;
+        var h = img.naturalHeight;
+        if (w > MAX_DIM || h > MAX_DIM) {
+          var scale = MAX_DIM / Math.max(w, h);
+          w = Math.round(w * scale);
+          h = Math.round(h * scale);
+        }
+        canvas.width = w;
+        canvas.height = h;
         ctx = canvas.getContext('2d');
-        ctx.drawImage(img, 0, 0);
+        ctx.drawImage(img, 0, 0, w, h);
       } else {
         state.scanning = false;
         updateScanUI(false);
@@ -877,6 +886,10 @@
     if (state.continuousRunning) stopContinuousScan();
     dom.cameraPlaceholder.classList.remove('hidden');
     dom.capturedImage.classList.add('hidden');
+    // Object URL 解放
+    if (dom.capturedImage.src && dom.capturedImage.src.startsWith('blob:')) {
+      URL.revokeObjectURL(dom.capturedImage.src);
+    }
     dom.capturedImage.src = '';
     dom.cameraPreview.classList.add('hidden');
     dom.markerOverlay.classList.add('hidden');
@@ -893,9 +906,9 @@
 
   function handleFileSelect(file) {
     if (!file || !file.type.startsWith('image/')) return;
-    var reader = new FileReader();
-    reader.onload = function(e) { showCapturedImage(e.target.result); };
-    reader.readAsDataURL(file);
+    // createObjectURL: base64変換を避けてメモリ節約（iOS Safari クラッシュ防止）
+    var url = URL.createObjectURL(file);
+    showCapturedImage(url);
   }
 
   // ====================================
