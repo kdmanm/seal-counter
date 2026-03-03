@@ -1,33 +1,42 @@
 /**
  * シールカウンター - Web Worker
- * ONNX Runtime Web による YOLOv8-nano 推論実行
+ * ONNX Runtime Web による YOLOv8-nano 推論 + 年号検出CNN実行
  */
 
 // ONNX Runtime Web CDN
 importScripts('https://cdn.jsdelivr.net/npm/onnxruntime-web@1.21.0/dist/ort.min.js');
 
-// 定数
+// 定数 — YOLO
 const INPUT_SIZE = 640;
-const CONF_THRESHOLD = 0.25;
-const IOU_THRESHOLD = 0.45;
-const NUM_CLASSES = 7;
+const CONF_THRESHOLD = 0.15;
+const IOU_THRESHOLD = 0.65;
+const NUM_CLASSES = 6;
 const PADDING_COLOR = 114; // RGB(114,114,114) — Ultralytics デフォルト
 
 const CLASS_NAMES = [
   'seal_05', 'seal_1', 'seal_15', 'seal_2',
-  'seal_25', 'seal_3', 'seal_old'
+  'seal_25', 'seal_3'
 ];
 
-const POINT_VALUES = [0.5, 1, 1.5, 2, 2.5, 3, 0];
+const POINT_VALUES = [0.5, 1, 1.5, 2, 2.5, 3];
+
+// 定数 — 年号検出CNN
+const YEAR_CNN_INPUT_W = 96;
+const YEAR_CNN_INPUT_H = 48;
+const YEAR_REGION_RATIO = 0.35;   // クロップ上部35%が年号領域
+const YEAR_CONF_THRESHOLD = 0.85; // この信頼度未満は "unknown"
+// *** 毎年更新: 新年度のシールPNG取得→CNNモデル再訓練→ONNX再エクスポート後に更新 ***
+const CURRENT_YEAR = '2026';
+const YEAR_CLASSES = ['2023', '2024', '2025', '2026'];
 
 let session = null;
+let yearSession = null;
 
 /**
- * モデルを読み込む。
+ * YOLOモデルを読み込む。
  */
 async function loadModel(modelData) {
   try {
-    // WebGL を優先、フォールバックで WASM
     ort.env.wasm.wasmPaths = 'https://cdn.jsdelivr.net/npm/onnxruntime-web@1.21.0/dist/';
 
     const options = {
@@ -35,13 +44,8 @@ async function loadModel(modelData) {
       graphOptimizationLevel: 'all',
     };
 
-    if (modelData instanceof ArrayBuffer) {
-      session = await ort.InferenceSession.create(modelData, options);
-    } else {
-      session = await ort.InferenceSession.create(modelData, options);
-    }
+    session = await ort.InferenceSession.create(modelData, options);
 
-    // 入出力情報
     const inputNames = session.inputNames;
     const outputNames = session.outputNames;
 
@@ -56,6 +60,124 @@ async function loadModel(modelData) {
       message: 'モデル読み込みに失敗: ' + e.message,
     });
   }
+}
+
+/**
+ * 年号検出CNNモデルを読み込む。
+ */
+async function loadYearModel(modelData) {
+  try {
+    const options = {
+      executionProviders: ['wasm'],
+      graphOptimizationLevel: 'all',
+    };
+
+    yearSession = await ort.InferenceSession.create(modelData, options);
+
+    self.postMessage({
+      type: 'year-model-loaded',
+    });
+  } catch (e) {
+    // 年号モデル読み込み失敗は致命的ではない（旧年度判定なしで動作）
+    self.postMessage({
+      type: 'year-model-error',
+      message: '年号モデル読み込みに失敗: ' + e.message,
+    });
+  }
+}
+
+/**
+ * RGBA画像データから指定領域をグレースケール96x48に変換し、年号CNNで推論する。
+ * Returns: { year: string, confidence: number } or null
+ */
+async function classifyYear(imageData, srcWidth, bbox) {
+  if (!yearSession) return null;
+
+  const [x1, y1, x2, y2] = bbox;
+  const cropW = Math.round(x2 - x1);
+  const cropH = Math.round(y2 - y1);
+  if (cropW < 8 || cropH < 8) return null;
+
+  // 年号領域: クロップ上部35%
+  const yearH = Math.round(cropH * YEAR_REGION_RATIO);
+  const yearX1 = Math.round(x1);
+  const yearY1 = Math.round(y1);
+  const yearX2 = Math.round(x2);
+  const yearY2 = Math.round(y1 + yearH);
+
+  // 年号領域をグレースケール96x48に変換（bilinear補間）
+  const regionW = yearX2 - yearX1;
+  const regionH = yearY2 - yearY1;
+  if (regionW < 4 || regionH < 4) return null;
+
+  const pixels = imageData.data; // RGBA
+  const input = new Float32Array(YEAR_CNN_INPUT_H * YEAR_CNN_INPUT_W);
+
+  for (let dy = 0; dy < YEAR_CNN_INPUT_H; dy++) {
+    // Bilinear補間: 連続座標を計算
+    const srcYf = yearY1 + (dy + 0.5) * regionH / YEAR_CNN_INPUT_H - 0.5;
+    const sy0 = Math.max(0, Math.floor(srcYf));
+    const sy1 = Math.min(sy0 + 1, yearY2 - 1);
+    const fy = srcYf - sy0;
+
+    for (let dx = 0; dx < YEAR_CNN_INPUT_W; dx++) {
+      const srcXf = yearX1 + (dx + 0.5) * regionW / YEAR_CNN_INPUT_W - 0.5;
+      const sx0 = Math.max(0, Math.floor(srcXf));
+      const sx1 = Math.min(sx0 + 1, yearX2 - 1);
+      const fx = srcXf - sx0;
+
+      // 4隣接ピクセルのグレースケール値
+      const idx00 = (sy0 * srcWidth + sx0) * 4;
+      const idx10 = (sy0 * srcWidth + sx1) * 4;
+      const idx01 = (sy1 * srcWidth + sx0) * 4;
+      const idx11 = (sy1 * srcWidth + sx1) * 4;
+
+      const g00 = 0.299 * pixels[idx00] + 0.587 * pixels[idx00 + 1] + 0.114 * pixels[idx00 + 2];
+      const g10 = 0.299 * pixels[idx10] + 0.587 * pixels[idx10 + 1] + 0.114 * pixels[idx10 + 2];
+      const g01 = 0.299 * pixels[idx01] + 0.587 * pixels[idx01 + 1] + 0.114 * pixels[idx01 + 2];
+      const g11 = 0.299 * pixels[idx11] + 0.587 * pixels[idx11 + 1] + 0.114 * pixels[idx11 + 2];
+
+      // Bilinear補間 + 正規化 [0,1]
+      const gray = ((1 - fx) * (1 - fy) * g00 + fx * (1 - fy) * g10
+                   + (1 - fx) * fy * g01 + fx * fy * g11) / 255.0;
+      input[dy * YEAR_CNN_INPUT_W + dx] = gray;
+    }
+  }
+
+  // 推論: input shape [1, 1, 48, 96]
+  const tensor = new ort.Tensor('float32', input, [1, 1, YEAR_CNN_INPUT_H, YEAR_CNN_INPUT_W]);
+  const inputName = yearSession.inputNames[0];
+  const results = await yearSession.run({ [inputName]: tensor });
+  tensor.dispose();
+
+  const outputName = yearSession.outputNames[0];
+  const logits = results[outputName].data; // Float32Array [4]
+
+  // Softmax
+  let maxLogit = -Infinity;
+  for (let i = 0; i < logits.length; i++) {
+    if (logits[i] > maxLogit) maxLogit = logits[i];
+  }
+  let sumExp = 0;
+  const probs = new Float32Array(logits.length);
+  for (let i = 0; i < logits.length; i++) {
+    probs[i] = Math.exp(logits[i] - maxLogit);
+    sumExp += probs[i];
+  }
+  let bestIdx = 0;
+  let bestProb = 0;
+  for (let i = 0; i < probs.length; i++) {
+    probs[i] /= sumExp;
+    if (probs[i] > bestProb) {
+      bestProb = probs[i];
+      bestIdx = i;
+    }
+  }
+
+  return {
+    year: YEAR_CLASSES[bestIdx],
+    confidence: bestProb,
+  };
 }
 
 /**
@@ -204,20 +326,13 @@ function postprocess(output, scale, padX, padY, srcWidth, srcHeight) {
     });
   }
 
-  // クラスごとに NMS
-  const finalDetections = [];
-  for (let c = 0; c < NUM_CLASSES; c++) {
-    const classDetections = detections.filter(d => d.classId === c);
-    if (classDetections.length === 0) continue;
+  // Agnostic NMS（クラス無関係に重複排除）
+  // 同一領域に異なるクラスの検出が出る問題を解消
+  const boxes = detections.map(d => d.bbox);
+  const scores = detections.map(d => d.confidence);
+  const kept = nms(boxes, scores, IOU_THRESHOLD);
 
-    const boxes = classDetections.map(d => d.bbox);
-    const scores = classDetections.map(d => d.confidence);
-    const kept = nms(boxes, scores, IOU_THRESHOLD);
-
-    for (const idx of kept) {
-      finalDetections.push(classDetections[idx]);
-    }
-  }
+  const finalDetections = kept.map(idx => detections[idx]);
 
   // 信頼度降順ソート
   finalDetections.sort((a, b) => b.confidence - a.confidence);
@@ -260,6 +375,24 @@ async function runInference(imageData, srcWidth, srcHeight) {
   // 後処理
   const detections = postprocess(output, scale, padX, padY, srcWidth, srcHeight);
 
+  // 年号判定: 各検出に対してCNNで年号を分類
+  if (yearSession) {
+    for (const det of detections) {
+      const yearResult = await classifyYear(imageData, srcWidth, det.bbox);
+      if (yearResult && yearResult.confidence >= YEAR_CONF_THRESHOLD
+          && yearResult.year !== CURRENT_YEAR) {
+        // 旧年度シール: classId=6 にマーク
+        det.classId = 6;
+        det.className = 'seal_old';
+        det.yearDetected = yearResult.year;
+        det.yearConfidence = yearResult.confidence;
+      } else if (yearResult) {
+        det.yearDetected = yearResult.year;
+        det.yearConfidence = yearResult.confidence;
+      }
+    }
+  }
+
   const elapsed = performance.now() - startTime;
 
   self.postMessage({
@@ -278,6 +411,10 @@ self.onmessage = async function(e) {
   switch (msg.type) {
     case 'load-model':
       await loadModel(msg.modelData);
+      break;
+
+    case 'load-year-model':
+      await loadYearModel(msg.modelData);
       break;
 
     case 'inference':

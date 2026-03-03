@@ -2,164 +2,192 @@
 <html lang="ja">
 <head>
   <meta charset="UTF-8">
-  <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover">
   <title>シールカウンター - ヤマザキ春のパンまつり</title>
 
   <meta name="description" content="ヤマザキ春のパンまつり シールポイント計算ツール">
-  <meta name="theme-color" content="#e11d48">
+  <meta name="theme-color" content="#E5005A">
   <link rel="preconnect" href="https://fonts.googleapis.com">
 
   <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/tailwindcss@2.2.19/dist/tailwind.min.css">
   <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Noto+Sans+JP:wght@400;500;700&display=swap">
   <link rel="stylesheet" href="style.css">
 </head>
-<body class="font-sans bg-gray-50 text-gray-900 min-h-screen">
+<body class="font-sans min-h-screen">
   <div id="app" class="min-h-screen flex flex-col max-w-lg mx-auto">
 
     <!-- ヘッダー -->
-    <header class="bg-rose-600 text-white p-4 shadow-md">
+    <header class="text-white px-5 pb-5 shadow-md">
       <div class="flex justify-between items-center">
         <div>
-          <h1 class="text-xl font-bold">シールカウンター</h1>
-          <div class="flex items-center gap-2">
-            <p class="text-rose-200 text-xs">ヤマザキ春のパンまつり 2026</p>
-            <span id="model-status" class="text-xs text-rose-300"></span>
+          <h1 class="text-lg font-extrabold tracking-tight">シールカウンター</h1>
+          <div class="flex items-center mt-0.5">
+            <span id="model-status" class="flex items-center text-2xs" style="gap:5px; color: rgba(255,255,255,0.6);">
+              <span class="status-dot"></span>
+              <span class="status-text"></span>
+            </span>
           </div>
         </div>
-        <button id="btn-reset" class="p-2 rounded-full hover:bg-rose-700 focus:outline-none" title="リセット">
-          <svg xmlns="http://www.w3.org/2000/svg" class="h-6 w-6" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+        <button id="btn-reset" class="btn-reset-header p-2 rounded-full focus:outline-none" title="リセット">
+          <svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
             <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15" />
           </svg>
         </button>
       </div>
     </header>
 
-    <!-- 進捗エリア -->
-    <section id="progress-section" class="bg-white shadow-sm p-4">
-      <div class="flex justify-between items-end mb-2">
-        <div>
-          <span class="text-3xl font-bold text-rose-600" id="total-points">0</span>
-          <span class="text-gray-500 text-sm"> / 30 点</span>
+    <!-- 進捗カード -->
+    <div class="px-4 -mt-3 relative" style="z-index:10;">
+      <section id="progress-section" class="ui-card p-4">
+        <div class="flex justify-between items-end mb-2">
+          <div>
+            <p class="text-2xs font-bold mb-0.5" style="color:#9ca3af;">現在の合計</p>
+            <div class="flex items-baseline" style="gap:4px;">
+              <span class="text-3xl font-black" id="total-points" style="color:var(--pink);">0</span>
+              <span class="text-sm font-bold" style="color:#9ca3af;">/ 30 点</span>
+            </div>
+          </div>
+          <div class="px-3 py-1 rounded-full text-sm font-bold" style="background:var(--blue-light); color:var(--blue); border:1px solid #cce2ff;">
+            お皿 <span id="plates-earned">0</span> 枚分
+          </div>
         </div>
-        <div id="plate-count" class="text-sm text-gray-500">
-          お皿 <span class="font-bold text-rose-600" id="plates-earned">0</span> 枚分
+        <div class="w-full rounded-full h-2.5 overflow-hidden" style="background:var(--gray);">
+          <div id="progress-bar" class="h-2.5 rounded-full" style="width: 0%"></div>
+        </div>
+        <p id="progress-message" class="text-xs font-bold mt-1.5 text-right" style="color:var(--pink);">あと 30 点</p>
+      </section>
+    </div>
+
+    <!-- 撮影・スキャンエリア -->
+    <section id="capture-section" class="px-4 mt-4">
+
+      <!-- ステップインジケーター -->
+      <div class="step-indicator mb-4 px-2">
+        <div class="step-item active" id="ui-step-1">
+          <div class="step-number">1</div>
+          <div class="step-label">撮影</div>
+        </div>
+        <div class="step-connector" id="ui-conn-1"></div>
+        <div class="step-item" id="ui-step-2">
+          <div class="step-number">2</div>
+          <div class="step-label">スキャン</div>
+        </div>
+        <div class="step-connector" id="ui-conn-2"></div>
+        <div class="step-item" id="ui-step-3">
+          <div class="step-number">3</div>
+          <div class="step-label">確認・決定</div>
         </div>
       </div>
-      <div class="w-full bg-gray-200 rounded-full h-3 overflow-hidden">
-        <div id="progress-bar" class="bg-rose-500 h-3 rounded-full transition-all duration-500 ease-out" style="width: 0%"></div>
+
+      <!-- カメラカード -->
+      <div class="ui-card overflow-hidden mb-3">
+        <div id="camera-container" class="relative bg-gray-200 overflow-hidden" style="aspect-ratio:16/9;">
+          <video id="camera-preview" class="w-full h-full object-cover hidden" autoplay playsinline></video>
+          <canvas id="capture-canvas" class="hidden"></canvas>
+          <img id="captured-image" class="w-full h-full object-contain hidden" alt="">
+
+          <canvas id="detect-overlay" class="absolute inset-0 w-full h-full object-contain hidden"></canvas>
+
+          <!-- プレースホルダー -->
+          <div id="camera-placeholder" class="absolute inset-0 flex flex-col items-center justify-center">
+            <div class="w-14 h-14 rounded-full flex items-center justify-center mb-2" style="background:var(--pink-muted);">
+              <svg xmlns="http://www.w3.org/2000/svg" class="h-7 w-7" fill="none" viewBox="0 0 24 24" stroke="currentColor" style="color:var(--pink);">
+                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="1.5" d="M3 9a2 2 0 012-2h.93a2 2 0 001.664-.89l.812-1.22A2 2 0 0110.07 4h3.86a2 2 0 011.664.89l.812 1.22A2 2 0 0018.07 7H19a2 2 0 012 2v9a2 2 0 01-2 2H5a2 2 0 01-2-2V9z" />
+                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="1.5" d="M15 13a3 3 0 11-6 0 3 3 0 016 0z" />
+              </svg>
+            </div>
+            <p class="text-xs font-bold text-gray-400">カメラを起動 or ギャラリーから選択</p>
+          </div>
+
+          <!-- 撮影ガイド -->
+          <div id="shooting-guide" class="absolute inset-0 bg-black bg-opacity-60 flex flex-col items-center justify-center text-white hidden z-10">
+            <div class="border-2 border-white border-dashed rounded-lg w-3/4 h-2/3 flex items-center justify-center mb-3 opacity-60">
+              <p class="text-sm text-center px-4">シールが枠内に<br>収まるように</p>
+            </div>
+            <p class="text-xs text-gray-300 mb-2">真上からシール全体がはっきり写るように撮影</p>
+            <button id="guide-dismiss" class="text-xs text-gray-400 underline">今後表示しない</button>
+          </div>
+
+        </div>
+
+        <!-- カメラ操作ボタン (Step 1) -->
+        <div id="camera-buttons" class="p-3 flex" style="gap:8px; background:var(--pink-bg);">
+          <button id="btn-camera" class="flex-1 btn-primary py-3 rounded-xl font-bold text-sm flex items-center justify-center" style="gap:6px;">
+            <svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+              <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M3 9a2 2 0 012-2h.93a2 2 0 001.664-.89l.812-1.22A2 2 0 0110.07 4h3.86a2 2 0 011.664.89l.812 1.22A2 2 0 0018.07 7H19a2 2 0 012 2v9a2 2 0 01-2 2H5a2 2 0 01-2-2V9z" />
+              <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 13a3 3 0 11-6 0 3 3 0 016 0z" />
+            </svg>
+            撮影
+          </button>
+          <button id="btn-gallery" class="flex-1 btn-primary py-3 rounded-xl font-bold text-sm flex items-center justify-center" style="gap:6px; background:var(--blue); box-shadow:0 4px 0 var(--blue-dark);">
+            <svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+              <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 16l4.586-4.586a2 2 0 012.828 0L16 16m-2-2l1.586-1.586a2 2 0 012.828 0L20 14m-6-6h.01M6 20h12a2 2 0 002-2V6a2 2 0 00-2-2H6a2 2 0 00-2 2v12a2 2 0 002 2z" />
+            </svg>
+            ギャラリー
+          </button>
+          <input type="file" id="file-input" accept="image/*" class="hidden">
+          <input type="file" id="camera-input" accept="image/*" capture="environment" class="hidden">
+        </div>
       </div>
-      <p id="progress-message" class="text-xs text-gray-400 mt-1 text-right">あと 30 点</p>
+
+      <!-- スキャンカード (Step 2) — 画像読み込み後に表示 -->
+      <div id="scan-card" class="ui-card p-3 mb-3 hidden" style="background:var(--blue-light); border:1px solid #cce2ff;">
+        <div class="mb-2">
+          <span class="text-2xs font-bold" style="color:var(--blue);">STEP 2 : スキャン</span>
+        </div>
+        <div class="flex items-center" style="gap:8px;">
+          <button id="btn-scan" class="flex-1 btn-action py-3 rounded-xl font-bold text-sm" disabled>
+            スキャンする
+          </button>
+          <button id="btn-retake" class="btn-secondary py-3 px-4 rounded-xl font-bold text-sm" style="color:var(--red); border-color:var(--pink-muted);">
+            撮り直す
+          </button>
+          <div id="scan-status" class="hidden flex items-center px-3" style="gap:8px;">
+            <div class="w-4 h-4 border-2 border-t-transparent rounded-full animate-spin" style="border-color:var(--blue); border-top-color:transparent;"></div>
+            <span class="text-xs" style="color:var(--blue);">認識中...</span>
+          </div>
+        </div>
+      </div>
+
+      <!-- 検出結果エリア (Step 3) -->
+      <div id="detect-results" class="hidden mb-3">
+        <div class="ui-card p-4" style="border:1px solid var(--pink-muted);">
+          <div class="flex justify-between items-center mb-2">
+            <span class="text-2xs font-bold" style="color:var(--pink);">STEP 3 : 確認・決定</span>
+            <span id="detect-stats" class="text-xs text-gray-400"></span>
+          </div>
+          <div id="detect-breakdown" class="text-2xs text-gray-400 mt-0.5"></div>
+          <div id="detection-list" class="space-y-1 max-h-40 overflow-y-auto mb-3">
+          </div>
+          <div class="flex" style="gap:8px;">
+            <button id="btn-confirm-detections" class="flex-1 btn-primary py-3 rounded-xl font-bold text-sm">
+              この内容で決定する
+            </button>
+            <button id="btn-retake-step3" class="py-3 px-4 rounded-xl font-bold text-sm border" style="color:var(--red); border-color:var(--pink-muted); background:white;">
+              撮り直す
+            </button>
+          </div>
+        </div>
+      </div>
     </section>
 
-    <!-- 撮影エリア -->
-    <section id="capture-section" class="p-4">
-      <div id="camera-container" class="relative bg-gray-200 rounded-xl overflow-hidden aspect-video mb-3">
-        <video id="camera-preview" class="w-full h-full object-cover hidden" autoplay playsinline></video>
-        <canvas id="capture-canvas" class="hidden"></canvas>
-        <img id="captured-image" class="w-full h-full object-contain hidden" alt="撮影画像">
-
-        <!-- 検出結果オーバーレイ Canvas -->
-        <canvas id="detect-overlay" class="absolute inset-0 w-full h-full object-contain hidden"></canvas>
-
-        <!-- 初期状態プレースホルダー -->
-        <div id="camera-placeholder" class="absolute inset-0 flex flex-col items-center justify-center text-gray-400">
-          <svg xmlns="http://www.w3.org/2000/svg" class="h-16 w-16 mb-2" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="1.5" d="M3 9a2 2 0 012-2h.93a2 2 0 001.664-.89l.812-1.22A2 2 0 0110.07 4h3.86a2 2 0 011.664.89l.812 1.22A2 2 0 0018.07 7H19a2 2 0 012 2v9a2 2 0 01-2 2H5a2 2 0 01-2-2V9z" />
-            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="1.5" d="M15 13a3 3 0 11-6 0 3 3 0 016 0z" />
-          </svg>
-          <p class="text-sm">シールを撮影またはカメラを起動</p>
-        </div>
-
-        <!-- 撮影ガイド -->
-        <div id="shooting-guide" class="absolute inset-0 bg-black bg-opacity-60 flex flex-col items-center justify-center text-white hidden z-10">
-          <div class="border-2 border-white border-dashed rounded-lg w-3/4 h-2/3 flex items-center justify-center mb-3 opacity-60">
-            <p class="text-sm text-center px-4">シールが枠内に<br>収まるように</p>
-          </div>
-          <p class="text-xs text-gray-300 mb-2">真上からシール全体がはっきり写るように撮影</p>
-          <button id="guide-dismiss" class="text-xs text-gray-400 underline">今後表示しない</button>
-        </div>
-
-        <!-- 連続スキャンインジケーター -->
-        <div id="continuous-indicator" class="absolute top-2 left-2 hidden z-10 flex items-center gap-1.5 bg-black bg-opacity-60 rounded-full px-3 py-1">
-          <span class="w-2 h-2 bg-red-500 rounded-full continuous-pulse"></span>
-          <span class="text-white text-xs font-bold">連続認識中</span>
-        </div>
-
-        <!-- タップマーカーオーバーレイ -->
-        <div id="marker-overlay" class="absolute inset-0 hidden" style="touch-action: none;"></div>
+    <!-- シール一覧 -->
+    <section id="seal-list-section" class="flex-grow px-4 pt-4 pb-2">
+      <div class="flex justify-between items-center mb-3">
+        <h2 class="text-sm font-bold" style="color:var(--dark);">登録済みシール</h2>
+        <span id="seal-count" class="text-xs font-bold px-2 py-0.5 rounded-full" style="background:var(--pink-muted); color:var(--pink);">0 枚</span>
       </div>
-
-      <!-- 撮影ボタン群 -->
-      <div id="camera-buttons" class="flex gap-2 mb-3">
-        <button id="btn-live-camera" class="flex-1 bg-rose-600 text-white py-3 rounded-xl font-bold text-sm shadow-md active:bg-rose-700 transition-colors flex items-center justify-center gap-2">
-          <svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 10l4.553-2.276A1 1 0 0121 8.618v6.764a1 1 0 01-1.447.894L15 14M5 18h8a2 2 0 002-2V8a2 2 0 00-2-2H5a2 2 0 00-2 2v8a2 2 0 002 2z" />
-          </svg>
-          ライブカメラ
-        </button>
-        <button id="btn-camera" class="bg-gray-200 text-gray-700 py-3 px-4 rounded-xl font-bold text-sm active:bg-gray-300 transition-colors" title="撮影">
-          <svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M3 9a2 2 0 012-2h.93a2 2 0 001.664-.89l.812-1.22A2 2 0 0110.07 4h3.86a2 2 0 011.664.89l.812 1.22A2 2 0 0018.07 7H19a2 2 0 012 2v9a2 2 0 01-2 2H5a2 2 0 01-2-2V9z" />
-            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 13a3 3 0 11-6 0 3 3 0 016 0z" />
-          </svg>
-        </button>
-        <button id="btn-gallery" class="bg-gray-200 text-gray-700 py-3 px-4 rounded-xl font-bold text-sm active:bg-gray-300 transition-colors" title="ギャラリー">
-          <svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 16l4.586-4.586a2 2 0 012.828 0L16 16m-2-2l1.586-1.586a2 2 0 012.828 0L20 14m-6-6h.01M6 20h12a2 2 0 002-2V6a2 2 0 00-2-2H6a2 2 0 00-2 2v12a2 2 0 002 2z" />
-          </svg>
-        </button>
-        <input type="file" id="file-input" accept="image/*" class="hidden">
-        <input type="file" id="camera-input" accept="image/*" capture="environment" class="hidden">
+      <div id="seal-breakdown" class="text-2xs text-gray-400 -mt-1 mb-2"></div>
+      <div id="seal-list" class="space-y-2">
       </div>
-
-      <!-- スキャンモード切替 -->
-      <div id="scan-mode-toggle" class="flex rounded-xl overflow-hidden border border-gray-300 mb-3">
-        <button id="btn-mode-single" class="flex-1 py-2 text-sm font-bold text-center scan-mode-active">1枚スキャン</button>
-        <button id="btn-mode-continuous" class="flex-1 py-2 text-sm font-bold text-center scan-mode-inactive">連続スキャン</button>
-      </div>
-
-      <!-- スキャンボタン + ステータス -->
-      <div class="flex gap-2 mb-3">
-        <button id="btn-scan" class="flex-1 bg-green-600 text-white py-3 rounded-xl font-bold text-sm shadow-md active:bg-green-700 transition-colors disabled:opacity-40 disabled:cursor-not-allowed" disabled>
-          スキャンする
-        </button>
-        <div id="scan-status" class="hidden flex items-center gap-2 px-3">
-          <div class="w-4 h-4 border-2 border-green-500 border-t-transparent rounded-full animate-spin"></div>
-          <span class="text-xs text-gray-500">認識中...</span>
-        </div>
-      </div>
-
-      <!-- 連続スキャン統計 -->
-      <div id="continuous-stats" class="hidden text-center text-sm text-gray-500 mb-2">
-        <span id="continuous-detected">0</span> 枚検出 / <span id="continuous-confirmed">0</span> 枚確定
-      </div>
-
-      <!-- 撮影後アクション -->
-      <div id="post-capture-actions" class="hidden gap-2 mb-3">
-        <button id="btn-confirm-marks" class="flex-1 bg-rose-600 text-white py-3 rounded-xl font-bold text-sm shadow-md active:bg-rose-700 transition-colors">
-          マークを確定
-        </button>
-        <button id="btn-retake" class="bg-gray-200 text-gray-700 py-3 px-4 rounded-xl font-bold text-sm active:bg-gray-300 transition-colors">
-          撮り直す
-        </button>
-      </div>
-
-      <!-- 検出結果エリア -->
-      <div id="detect-results" class="hidden mb-3">
-        <div class="flex justify-between items-center mb-2">
-          <span id="detect-stats" class="text-xs text-gray-500"></span>
-        </div>
-        <div id="detection-list" class="space-y-1 max-h-40 overflow-y-auto mb-2">
-        </div>
-        <button id="btn-confirm-detections" class="w-full bg-green-600 text-white py-3 rounded-xl font-bold text-sm shadow-md active:bg-green-700 transition-colors">
-          検出結果を確定
-        </button>
+      <div id="seal-empty" class="text-center py-8">
+        <p class="text-sm text-gray-300">まだシールが登録されていません</p>
       </div>
     </section>
 
     <!-- 点数クイック入力 -->
     <section id="quick-input-section" class="px-4 pb-2">
-      <p class="text-xs text-gray-400 mb-2">タップで点数を追加（手動入力）</p>
+      <p class="text-2xs font-bold mb-2" style="color:#9ca3af; letter-spacing:0.05em;">手動ポイント追加</p>
       <div class="grid grid-cols-6 gap-2">
         <button class="point-btn" data-point="0.5">0.5</button>
         <button class="point-btn" data-point="1">1</button>
@@ -170,28 +198,17 @@
       </div>
     </section>
 
-    <!-- シール一覧 -->
-    <section id="seal-list-section" class="flex-grow p-4">
-      <div class="flex justify-between items-center mb-2">
-        <h2 class="text-sm font-bold text-gray-600">登録シール</h2>
-        <span id="seal-count" class="text-xs text-gray-400">0 枚</span>
-      </div>
-      <div id="seal-list" class="space-y-1">
-      </div>
-      <div id="seal-empty" class="text-center text-gray-300 py-8">
-        <p class="text-sm">まだシールが登録されていません</p>
-      </div>
-    </section>
-
     <!-- フッター -->
-    <footer class="p-4 text-center text-xs text-gray-300">
-      <p>※ ヤマザキ製パン株式会社との関連はありません</p>
+    <footer class="p-6 pb-safe text-center">
+      <p class="text-2xs leading-relaxed" style="color:#ccc;">
+        ※ ヤマザキ製パン株式会社との関連はありません
+      </p>
     </footer>
   </div>
 
   <!-- 点数選択モーダル -->
-  <div id="point-modal" class="fixed inset-0 bg-black bg-opacity-50 flex items-end justify-center z-50 hidden">
-    <div class="bg-white rounded-t-2xl w-full max-w-lg p-6 pb-8 transform transition-transform">
+  <div id="point-modal" class="fixed inset-0 bg-black bg-opacity-30 flex items-end justify-center z-50 hidden">
+    <div class="bg-white rounded-t-2xl w-full max-w-lg p-6 pb-8">
       <div class="w-10 h-1 bg-gray-300 rounded-full mx-auto mb-4"></div>
       <h3 class="text-center font-bold text-gray-700 mb-4">このシールの点数は？</h3>
       <div class="grid grid-cols-3 gap-3 mb-4">
@@ -231,7 +248,7 @@
       <p class="text-center text-sm text-gray-500 mb-6">登録したシールをすべて削除します。この操作は元に戻せません。</p>
       <div class="flex gap-3">
         <button id="btn-reset-cancel" class="flex-1 py-2.5 rounded-xl border border-gray-300 text-gray-600 font-bold text-sm">キャンセル</button>
-        <button id="btn-reset-confirm" class="flex-1 py-2.5 rounded-xl bg-red-500 text-white font-bold text-sm">リセット</button>
+        <button id="btn-reset-confirm" class="flex-1 py-2.5 rounded-xl text-white font-bold text-sm" style="background:var(--red);">リセット</button>
       </div>
     </div>
   </div>

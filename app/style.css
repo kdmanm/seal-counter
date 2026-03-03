@@ -1,43 +1,305 @@
 /*
  * シールカウンター - ヤマザキ春のパンまつり
- * カスタムスタイルシート
+ * カスタムスタイルシート（公式カラースキーム準拠）
  */
 
-/* ベースフォント */
+/* ====================================
+   CSS変数（パン祭り公式カラー）
+   ==================================== */
+:root {
+  --pink: #E5005A;
+  --pink-dark: #cc0050;
+  --pink-bg: #FFEEF2;
+  --pink-muted: #FBE5E7;
+  --pink-border: #fbcfe8;
+  --blue: #0047A1;
+  --blue-dark: #00367d;
+  --blue-light: #E5F1FF;
+  --red: #E50012;
+  --dark: #222222;
+  --gray: #EFEFEF;
+}
+
+/* ====================================
+   ベース
+   ==================================== */
 body {
   font-family: 'Noto Sans JP', sans-serif;
   -webkit-font-smoothing: antialiased;
   -webkit-tap-highlight-color: transparent;
+  background-color: var(--pink-bg);
+  color: var(--dark);
+  padding-bottom: env(safe-area-inset-bottom);
 }
 
-/* 進捗バーアニメーション */
+.text-2xs {
+  font-size: 0.625rem;
+  line-height: 0.875rem;
+}
+
+/* ====================================
+   iOS Safe Area
+   ==================================== */
+.pt-safe { padding-top: env(safe-area-inset-top); }
+.pb-safe { padding-bottom: env(safe-area-inset-bottom); }
+
+/* ====================================
+   ヘッダー
+   ==================================== */
+header {
+  padding-top: calc(0.75rem + env(safe-area-inset-top));
+  background: var(--pink);
+}
+
+.btn-reset-header {
+  background: rgba(255,255,255,0.15);
+  backdrop-filter: blur(4px);
+  -webkit-backdrop-filter: blur(4px);
+}
+
+.btn-reset-header:active {
+  background: rgba(255,255,255,0.25);
+}
+
+/* ステータスドット */
+.status-dot {
+  width: 8px;
+  height: 8px;
+  border-radius: 50%;
+  flex-shrink: 0;
+  background-color: currentColor;
+  transition: all 0.3s ease;
+}
+
+.status-dot.is-loading {
+  animation: status-pulse 1.5s ease-in-out infinite;
+}
+
+@keyframes status-pulse {
+  0%, 100% { opacity: 1; }
+  50% { opacity: 0.3; }
+}
+
+/* ====================================
+   ステップインジケーター
+   ==================================== */
+.step-indicator {
+  display: flex;
+  align-items: flex-start;
+  position: relative;
+}
+
+.step-item {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  z-index: 1;
+  flex-shrink: 0;
+}
+
+.step-number {
+  width: 28px;
+  height: 28px;
+  background: #fff;
+  border: 2px solid #d1d5db;
+  border-radius: 50%;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 12px;
+  font-weight: 800;
+  color: #9ca3af;
+  margin-bottom: 4px;
+  transition: all 0.3s ease;
+}
+
+.step-item.active .step-number {
+  border-color: var(--pink);
+  background: var(--pink);
+  color: #fff;
+}
+
+.step-item.completed .step-number {
+  border-color: var(--pink);
+  background: var(--pink-muted);
+  color: var(--pink);
+}
+
+.step-label {
+  font-size: 10px;
+  font-weight: 700;
+  color: #9ca3af;
+  transition: color 0.3s ease;
+}
+
+.step-item.active .step-label {
+  color: var(--pink);
+}
+
+.step-item.completed .step-label {
+  color: var(--pink);
+}
+
+.step-connector {
+  flex: 1;
+  height: 2px;
+  background: #d1d5db;
+  margin-top: 13px;
+  margin-left: -4px;
+  margin-right: -4px;
+  transition: background 0.3s ease;
+}
+
+.step-connector.done {
+  background: var(--pink);
+}
+
+/* ====================================
+   UIカード
+   ==================================== */
+.ui-card {
+  background: white;
+  border-radius: 1.25rem;
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.06);
+}
+
+/* ====================================
+   進捗エリア
+   ==================================== */
 #progress-bar {
   transition: width 0.5s cubic-bezier(0.4, 0, 0.2, 1);
+  background: linear-gradient(90deg, #ff6b9d, var(--pink));
 }
 
-/* 点数クイック入力ボタン */
+@keyframes goal-pulse {
+  0%, 100% { transform: scale(1); }
+  50% { transform: scale(1.03); }
+}
+
+.goal-reached {
+  animation: goal-pulse 0.6s ease 3;
+}
+
+/* ====================================
+   カメラコンテナ
+   ==================================== */
+#camera-container {
+  position: relative;
+  aspect-ratio: 16 / 9;
+}
+
+/* aspect-ratio 未対応ブラウザ用フォールバック */
+@supports not (aspect-ratio: 16/9) {
+  #camera-container::before {
+    content: ''; display: block; padding-top: 56.25%;
+  }
+  #camera-container > * {
+    position: absolute; top: 0; left: 0; width: 100%; height: 100%;
+  }
+}
+
+#camera-preview { background-color: #000; }
+#detect-overlay {
+  pointer-events: none;
+  touch-action: none;
+}
+
+/* ====================================
+   撮影ガイド
+   ==================================== */
+#shooting-guide { animation: guide-fade-in 0.3s ease; }
+@keyframes guide-fade-in { 0% { opacity: 0; } 100% { opacity: 1; } }
+#shooting-guide .border-dashed { animation: guide-blink 2s ease-in-out infinite; }
+@keyframes guide-blink { 0%, 100% { opacity: 0.4; } 50% { opacity: 0.8; } }
+
+/* ====================================
+   ボタン
+   ==================================== */
+
+/* プライマリ（ピンク: 決定系） */
+.btn-primary {
+  background: var(--pink);
+  color: white;
+  box-shadow: 0 4px 0 var(--pink-dark);
+  border: none;
+  cursor: pointer;
+  transition: all 0.1s ease;
+  -webkit-tap-highlight-color: transparent;
+}
+
+.btn-primary:active {
+  transform: translateY(2px);
+  box-shadow: 0 2px 0 var(--pink-dark);
+}
+
+/* アクション（ブルー: スキャン実行系） */
+.btn-action {
+  background: var(--blue);
+  color: white;
+  box-shadow: 0 4px 0 var(--blue-dark);
+  border: none;
+  cursor: pointer;
+  transition: all 0.1s ease;
+  -webkit-tap-highlight-color: transparent;
+}
+
+.btn-action:active {
+  transform: translateY(2px);
+  box-shadow: 0 2px 0 var(--blue-dark);
+}
+
+.btn-action:disabled {
+  background: #d1d5db;
+  color: #9ca3af;
+  box-shadow: 0 4px 0 #b0b0b0;
+  cursor: not-allowed;
+}
+
+/* セカンダリ（白） */
+.btn-secondary {
+  background: white;
+  color: #374151;
+  border: 1.5px solid #e5e7eb;
+  cursor: pointer;
+  transition: all 0.1s ease;
+  -webkit-tap-highlight-color: transparent;
+}
+
+.btn-secondary:active {
+  background: #f3f4f6;
+  transform: scale(0.97);
+}
+
+/* スキャンボタン */
+#btn-scan:not(:disabled):active {
+  transform: translateY(2px);
+}
+
+/* ====================================
+   点数クイック入力ボタン
+   ==================================== */
 .point-btn {
   display: flex;
   align-items: center;
   justify-content: center;
-  padding: 0.625rem 0;
-  border-radius: 0.75rem;
+  aspect-ratio: 1;
+  border-radius: 0.875rem;
   font-size: 0.875rem;
   font-weight: 700;
   background-color: #fff;
-  color: #e11d48;
-  border: 2px solid #fecdd3;
+  color: var(--pink);
+  border: 2px solid var(--pink-muted);
   cursor: pointer;
   user-select: none;
-  transition: all 0.15s ease;
+  transition: all 0.1s ease;
   -webkit-tap-highlight-color: transparent;
 }
 
 .point-btn:active {
-  background-color: #e11d48;
+  background-color: var(--pink);
   color: #fff;
-  border-color: #e11d48;
-  transform: scale(0.95);
+  border-color: var(--pink);
+  transform: scale(0.92);
 }
 
 /* モーダル点数ボタン */
@@ -49,31 +311,39 @@ body {
   padding: 1rem;
   border-radius: 1rem;
   background-color: #fff;
-  border: 2px solid #fecdd3;
+  border: 2px solid var(--pink-muted);
   cursor: pointer;
   transition: all 0.15s ease;
   -webkit-tap-highlight-color: transparent;
 }
 
 .modal-point-btn:active {
-  background-color: #e11d48;
-  border-color: #e11d48;
+  background-color: var(--pink);
+  border-color: var(--pink);
   transform: scale(0.95);
 }
 
-.modal-point-btn:active span {
-  color: #fff !important;
+.modal-point-btn:active span { color: #fff !important; }
+
+.modal-point-btn.modal-point-selected {
+  background-color: var(--pink);
+  border-color: var(--pink);
 }
 
-/* シール一覧エントリ */
+.modal-point-btn.modal-point-selected span { color: #fff !important; }
+
+/* ====================================
+   シール一覧
+   ==================================== */
 .seal-entry {
   display: flex;
   align-items: center;
   justify-content: space-between;
-  padding: 0.625rem 0.75rem;
+  padding: 0.75rem;
   background-color: #fff;
   border-radius: 0.75rem;
   border: 1px solid #f3f4f6;
+  border-left: 4px solid var(--pink);
   transition: all 0.2s ease;
 }
 
@@ -84,7 +354,7 @@ body {
   min-width: 2.5rem;
   height: 2.5rem;
   border-radius: 50%;
-  background-color: #e11d48;
+  background-color: var(--pink);
   color: #fff;
   font-size: 0.875rem;
   font-weight: 700;
@@ -109,161 +379,38 @@ body {
   border: none;
 }
 
-.seal-entry .seal-delete-btn:active {
-  color: #ef4444;
-}
+.seal-entry .seal-delete-btn:active { color: #ef4444; }
 
-/* タップマーカー */
-.tap-marker {
-  position: absolute;
-  width: 2.5rem;
-  height: 2.5rem;
-  border-radius: 50%;
-  border: 3px solid #e11d48;
-  background-color: rgba(225, 29, 72, 0.2);
-  transform: translate(-50%, -50%);
-  pointer-events: none;
-  animation: marker-appear 0.3s cubic-bezier(0.4, 0, 0.2, 1);
-}
-
-.tap-marker::after {
-  content: attr(data-point);
-  position: absolute;
-  top: -1.25rem;
-  left: 50%;
-  transform: translateX(-50%);
-  background-color: #e11d48;
-  color: #fff;
-  font-size: 0.625rem;
-  font-weight: 700;
-  padding: 0.125rem 0.375rem;
-  border-radius: 0.375rem;
-  white-space: nowrap;
-}
-
-@keyframes marker-appear {
-  0% {
-    transform: translate(-50%, -50%) scale(0);
-    opacity: 0;
-  }
-  100% {
-    transform: translate(-50%, -50%) scale(1);
-    opacity: 1;
-  }
-}
-
-/* シール追加アニメーション */
 @keyframes slide-in {
-  0% {
-    opacity: 0;
-    transform: translateY(-0.5rem);
-  }
-  100% {
-    opacity: 1;
-    transform: translateY(0);
-  }
+  0% { opacity: 0; transform: translateY(-0.5rem); }
+  100% { opacity: 1; transform: translateY(0); }
 }
 
-.seal-entry-new {
-  animation: slide-in 0.3s ease;
+.seal-entry-new { animation: slide-in 0.3s ease; }
+
+#seal-list {
+  max-height: 40vh;
+  overflow-y: auto;
+  -webkit-overflow-scrolling: touch;
 }
 
-/* ポイント達成演出 */
-@keyframes goal-pulse {
-  0%, 100% { transform: scale(1); }
-  50% { transform: scale(1.05); }
-}
-
-.goal-reached {
-  animation: goal-pulse 0.6s ease 3;
-}
-
-/* モーダルトランジション */
+/* ====================================
+   モーダル
+   ==================================== */
 #point-modal > div,
 #reset-modal > div {
   animation: modal-slide-up 0.25s cubic-bezier(0.4, 0, 0.2, 1);
 }
 
 @keyframes modal-slide-up {
-  0% {
-    opacity: 0;
-    transform: translateY(1rem);
-  }
-  100% {
-    opacity: 1;
-    transform: translateY(0);
-  }
+  0% { opacity: 0; transform: translateY(1rem); }
+  100% { opacity: 1; transform: translateY(0); }
 }
 
-/* カメラコンテナ */
-#camera-container {
-  position: relative;
-}
-
-/* アスペクト比フォールバック (aspect-ratio未対応ブラウザ) */
-@supports not (aspect-ratio: 16/9) {
-  #camera-container::before {
-    content: '';
-    display: block;
-    padding-top: 56.25%;
-  }
-  #camera-container > * {
-    position: absolute;
-    top: 0; left: 0; width: 100%; height: 100%;
-  }
-}
-
-/* カメラプレビュー */
-#camera-preview {
-  background-color: #000;
-}
-
-/* 検出オーバーレイ Canvas */
-#detect-overlay {
-  pointer-events: none;
-}
-
-/* 撮影ガイドアニメーション */
-#shooting-guide {
-  animation: guide-fade-in 0.3s ease;
-}
-
-@keyframes guide-fade-in {
-  0% { opacity: 0; }
-  100% { opacity: 1; }
-}
-
-#shooting-guide .border-dashed {
-  animation: guide-pulse 2s ease-in-out infinite;
-}
-
-@keyframes guide-pulse {
-  0%, 100% { opacity: 0.4; }
-  50% { opacity: 0.8; }
-}
-
-/* スキャンボタン */
-#btn-scan:disabled {
-  cursor: not-allowed;
-}
-
-#btn-scan:not(:disabled):active {
-  transform: scale(0.97);
-}
-
-/* スキャンステータス スピナー */
-#scan-status .animate-spin {
-  animation: spin 0.8s linear infinite;
-}
-
-@keyframes spin {
-  to { transform: rotate(360deg); }
-}
-
-/* 検出結果エリア */
-#detect-results {
-  animation: slide-in 0.3s ease;
-}
+/* ====================================
+   検出結果エリア
+   ==================================== */
+#detect-results { animation: slide-in 0.3s ease; }
 
 #detection-list {
   -webkit-overflow-scrolling: touch;
@@ -271,20 +418,20 @@ body {
   scrollbar-color: #d1d5db transparent;
 }
 
-#detection-list::-webkit-scrollbar {
-  width: 4px;
+#detection-list::-webkit-scrollbar { width: 4px; }
+#detection-list::-webkit-scrollbar-track { background: transparent; }
+#detection-list::-webkit-scrollbar-thumb { background: #d1d5db; border-radius: 2px; }
+
+.detect-point-btn {
+  border: none;
+  cursor: pointer;
+  transition: transform 0.1s ease, opacity 0.1s ease;
+  -webkit-tap-highlight-color: transparent;
+  flex-shrink: 0;
 }
 
-#detection-list::-webkit-scrollbar-track {
-  background: transparent;
-}
+.detect-point-btn:active { transform: scale(0.85); opacity: 0.7; }
 
-#detection-list::-webkit-scrollbar-thumb {
-  background: #d1d5db;
-  border-radius: 2px;
-}
-
-/* 検出トグルボタン */
 .detect-toggle-btn {
   background: none;
   border: none;
@@ -295,69 +442,29 @@ body {
   -webkit-tap-highlight-color: transparent;
 }
 
-.detect-toggle-btn:active {
-  background-color: #f3f4f6;
-}
+.detect-toggle-btn:active { background-color: #f3f4f6; }
 
-/* スクロール関連 */
-#seal-list {
-  max-height: 40vh;
-  overflow-y: auto;
-  -webkit-overflow-scrolling: touch;
-}
-
-/* ==============================
-   Phase 2: 連続スキャン
-   ============================== */
-
-/* スキャンモード切替トグル */
-.scan-mode-active {
-  background-color: #059669;
-  color: #fff;
-}
-
-.scan-mode-inactive {
-  background-color: #fff;
-  color: #6b7280;
+.detect-delete-btn {
+  background: none;
+  border: none;
   cursor: pointer;
+  padding: 0.25rem;
+  border-radius: 0.375rem;
+  transition: color 0.15s ease;
+  -webkit-tap-highlight-color: transparent;
+  font-size: 0.875rem;
+  line-height: 1;
 }
 
-.scan-mode-inactive:active {
-  background-color: #f3f4f6;
-}
+.detect-delete-btn:active { color: #ef4444; }
 
-/* 連続認識中パルスインジケーター */
-.continuous-pulse {
-  animation: continuous-pulse 1s ease-in-out infinite;
-}
+#scan-status .animate-spin { animation: spin 0.8s linear infinite; }
+@keyframes spin { to { transform: rotate(360deg); } }
 
-@keyframes continuous-pulse {
-  0%, 100% { opacity: 1; }
-  50% { opacity: 0.3; }
-}
-
-/* 連続スキャン中のスキャンボタン */
-#btn-scan.continuous-stop {
-  background-color: #dc2626;
-}
-
-#btn-scan.continuous-stop:active {
-  background-color: #b91c1c;
-}
-
-/* 確定フラッシュアニメーション */
-@keyframes confirm-flash {
-  0% { opacity: 0.5; }
-  50% { opacity: 1; }
-  100% { opacity: 0.5; }
-}
-
-/* safe area対応 (ノッチ付きデバイス) */
+/* ====================================
+   Safe Area（下部）
+   ==================================== */
 @supports (padding-bottom: env(safe-area-inset-bottom)) {
-  footer {
-    padding-bottom: calc(1rem + env(safe-area-inset-bottom));
-  }
-  #point-modal > div {
-    padding-bottom: calc(2rem + env(safe-area-inset-bottom));
-  }
+  footer { padding-bottom: calc(1rem + env(safe-area-inset-bottom)); }
+  #point-modal > div { padding-bottom: calc(2rem + env(safe-area-inset-bottom)); }
 }
