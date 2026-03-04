@@ -11,7 +11,7 @@
   var STORAGE_KEY = 'seal-counter-data';
   var GOAL_POINTS = 30;
   var POINT_VALUES = [0.5, 1, 1.5, 2, 2.5, 3];
-  var MODEL_VERSION = '2.0.0';
+  var MODEL_VERSION = '2.0.1';
   var MODEL_URL = '../models/seal-detector.onnx';
   var MODEL_CACHE_KEY = 'seal-detector-model';
   var YEAR_MODEL_URL = '../models/year-detector.onnx';
