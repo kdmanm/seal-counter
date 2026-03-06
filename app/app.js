@@ -103,8 +103,8 @@
         state.modelLoading = false;
         updateModelStatus('ready', 'モデル準備完了');
         if (dom.scanBtn) dom.scanBtn.disabled = false;
-        // YOLOモデル読み込み後、年号モデルも読み込む
-        loadYearModel();
+        // 年号検出モデルは未作成のため当面無効化
+        // loadYearModel();
         break;
       case 'year-model-loaded':
         state.yearModelLoaded = true;
@@ -524,12 +524,13 @@
 
     state.captureCanvasValid = true;
     var imageData = ctx.getImageData(0, 0, canvas.width, canvas.height);
+    var buf = imageData.data.buffer;
     worker.postMessage({
       type: 'inference',
-      imageData: imageData,
+      imageBuffer: buf,
       width: canvas.width,
       height: canvas.height,
-    });
+    }, [buf]);
   }
 
   function handleInferenceResult(detections, elapsed) {
@@ -734,6 +735,7 @@
       gain.gain.value = 0.1;
       osc.start();
       osc.stop(ac.currentTime + 0.1);
+      osc.onended = function() { ac.close(); };
     } catch (e) {}
   }
 
@@ -1143,6 +1145,9 @@
       }
     });
     dom.pointModal.classList.remove('hidden');
+    // キャンバスがモーダルの上に見えるようスクロール
+    var container = document.getElementById('camera-container');
+    if (container) container.scrollIntoView({ behavior: 'smooth', block: 'start' });
   }
   function hidePointModal() {
     dom.pointModal.classList.add('hidden');

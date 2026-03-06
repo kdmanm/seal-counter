@@ -332,6 +332,12 @@ header {
 
 .modal-point-btn.modal-point-selected span { color: #fff !important; }
 
+.modal-point-btn-compact {
+  padding: 0.6rem 0.25rem;
+  border-radius: 0.75rem;
+  border-width: 1.5px;
+}
+
 /* ====================================
    シール一覧
    ==================================== */
@@ -466,5 +472,5 @@ header {
    ==================================== */
 @supports (padding-bottom: env(safe-area-inset-bottom)) {
   footer { padding-bottom: calc(1rem + env(safe-area-inset-bottom)); }
-  #point-modal > div { padding-bottom: calc(2rem + env(safe-area-inset-bottom)); }
+  #point-modal > div { padding-bottom: calc(1rem + env(safe-area-inset-bottom)); }
 }

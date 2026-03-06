@@ -208,36 +208,31 @@
 
   <!-- 点数選択モーダル -->
   <div id="point-modal" class="fixed inset-0 bg-black bg-opacity-30 flex items-end justify-center z-50 hidden">
-    <div class="bg-white rounded-t-2xl w-full max-w-lg p-6 pb-8">
-      <div class="w-10 h-1 bg-gray-300 rounded-full mx-auto mb-4"></div>
-      <h3 class="text-center font-bold text-gray-700 mb-4">このシールの点数は？</h3>
-      <div class="grid grid-cols-3 gap-3 mb-4">
-        <button class="modal-point-btn" data-point="0.5">
-          <span class="text-2xl font-bold">0.5</span>
-          <span class="text-xs text-gray-400">点</span>
+    <div class="bg-white rounded-t-2xl w-full max-w-lg px-4 pt-3 pb-4">
+      <div class="flex items-center justify-between mb-2">
+        <span class="text-xs font-bold text-gray-500">点数を選択</span>
+        <button id="btn-modal-cancel" class="text-xs text-gray-400 font-bold px-2 py-1">キャンセル</button>
+      </div>
+      <div class="grid grid-cols-6 gap-1.5">
+        <button class="modal-point-btn modal-point-btn-compact" data-point="0.5">
+          <span class="text-base font-bold">0.5</span>
         </button>
-        <button class="modal-point-btn" data-point="1">
-          <span class="text-2xl font-bold">1</span>
-          <span class="text-xs text-gray-400">点</span>
+        <button class="modal-point-btn modal-point-btn-compact" data-point="1">
+          <span class="text-base font-bold">1</span>
         </button>
-        <button class="modal-point-btn" data-point="1.5">
-          <span class="text-2xl font-bold">1.5</span>
-          <span class="text-xs text-gray-400">点</span>
+        <button class="modal-point-btn modal-point-btn-compact" data-point="1.5">
+          <span class="text-base font-bold">1.5</span>
         </button>
-        <button class="modal-point-btn" data-point="2">
-          <span class="text-2xl font-bold">2</span>
-          <span class="text-xs text-gray-400">点</span>
+        <button class="modal-point-btn modal-point-btn-compact" data-point="2">
+          <span class="text-base font-bold">2</span>
         </button>
-        <button class="modal-point-btn" data-point="2.5">
-          <span class="text-2xl font-bold">2.5</span>
-          <span class="text-xs text-gray-400">点</span>
+        <button class="modal-point-btn modal-point-btn-compact" data-point="2.5">
+          <span class="text-base font-bold">2.5</span>
         </button>
-        <button class="modal-point-btn" data-point="3">
-          <span class="text-2xl font-bold">3</span>
-          <span class="text-xs text-gray-400">点</span>
+        <button class="modal-point-btn modal-point-btn-compact" data-point="3">
+          <span class="text-base font-bold">3</span>
         </button>
       </div>
-      <button id="btn-modal-cancel" class="w-full py-3 text-gray-500 text-sm font-bold">キャンセル</button>
     </div>
   </div>
 

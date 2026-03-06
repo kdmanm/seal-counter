@@ -151,17 +151,21 @@ async function classifyYear(imageData, srcWidth, bbox) {
   tensor.dispose();
 
   const outputName = yearSession.outputNames[0];
-  const logits = results[outputName].data; // Float32Array [4]
+  const yearOutput = results[outputName];
+  const logits = yearOutput.data; // Float32Array [4]
+  // Note: logits is a view into yearOutput's buffer, so copy before dispose
+  const logitsCopy = new Float32Array(logits);
+  yearOutput.dispose();
 
   // Softmax
   let maxLogit = -Infinity;
-  for (let i = 0; i < logits.length; i++) {
-    if (logits[i] > maxLogit) maxLogit = logits[i];
+  for (let i = 0; i < logitsCopy.length; i++) {
+    if (logitsCopy[i] > maxLogit) maxLogit = logitsCopy[i];
   }
   let sumExp = 0;
-  const probs = new Float32Array(logits.length);
-  for (let i = 0; i < logits.length; i++) {
-    probs[i] = Math.exp(logits[i] - maxLogit);
+  const probs = new Float32Array(logitsCopy.length);
+  for (let i = 0; i < logitsCopy.length; i++) {
+    probs[i] = Math.exp(logitsCopy[i] - maxLogit);
     sumExp += probs[i];
   }
   let bestIdx = 0;
@@ -355,25 +359,24 @@ async function runInference(imageData, srcWidth, srcHeight) {
   const startTime = performance.now();
 
   // 前処理
-  const { tensor, scale, padX, padY } = preprocess(imageData, srcWidth, srcHeight);
+  const preprocessed = preprocess(imageData, srcWidth, srcHeight);
 
-  // テンソル作成
-  const inputTensor = new ort.Tensor('float32', tensor, [1, 3, INPUT_SIZE, INPUT_SIZE]);
+  // テンソル作成（前処理配列の所有権をTensorに委譲）
+  const inputTensor = new ort.Tensor('float32', preprocessed.tensor, [1, 3, INPUT_SIZE, INPUT_SIZE]);
 
   // 推論実行
   const inputName = session.inputNames[0];
   const feeds = { [inputName]: inputTensor };
   const results = await session.run(feeds);
 
-  // テンソル解放（連続モード時のメモリリーク防止）
+  // テンソル解放
   inputTensor.dispose();
 
-  // 出力取得
+  // 出力取得 → 後処理 → 出力テンソル解放
   const outputName = session.outputNames[0];
   const output = results[outputName];
-
-  // 後処理
-  const detections = postprocess(output, scale, padX, padY, srcWidth, srcHeight);
+  const detections = postprocess(output, preprocessed.scale, preprocessed.padX, preprocessed.padY, srcWidth, srcHeight);
+  output.dispose();
 
   // 年号判定: 各検出に対してCNNで年号を分類
   if (yearSession) {
@@ -418,7 +421,8 @@ self.onmessage = async function(e) {
       break;
 
     case 'inference':
-      await runInference(msg.imageData, msg.width, msg.height);
+      const imgData = { data: new Uint8ClampedArray(msg.imageBuffer) };
+      await runInference(imgData, msg.width, msg.height);
       break;
 
     default:
